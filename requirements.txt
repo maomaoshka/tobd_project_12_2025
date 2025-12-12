@@ -1,0 +1,16 @@
+# Оркестратор
+prefect
+
+# Обработка данных
+dask[complete]
+pandas
+
+# Работа с PostgreSQL из Python
+# psycopg2-binary — это "драйвер" для
+# подключения к PostgreSQL.
+sqlalchemy
+psycopg2-binary
+
+# Работа с MinIO (S3) из Python
+s3fs
+boto3
