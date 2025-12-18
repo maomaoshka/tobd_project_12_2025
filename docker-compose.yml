@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:14
     environment:
-      - POSTGRES_USER=user
+      - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=project_db
     ports:
