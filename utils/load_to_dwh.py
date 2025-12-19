@@ -18,11 +18,11 @@ def load_data_to_postgres(df: pd.DataFrame, table_name: str = 'wines'):
     
     # 1. Получаем настройки подключения из окружения (или берем значения по умолчанию)
     # На твоем ПК автоматически сработает 'localhost', в Docker - 'postgres'
-    db_host = os.getenv('DB_HOST', 'localhost')
-    db_port = os.getenv('DB_PORT', '5432')
-    db_user = os.getenv('DB_USER', 'postgres')
-    db_pass = os.getenv('DB_PASSWORD', 'password')
-    db_name = os.getenv('DB_NAME', 'project_db')
+    db_host = os.getenv('POSTGRES_HOST', 'localhost')
+    db_port = os.getenv('POSTGRES_PORT', '5432')
+    db_user = os.getenv('POSTGRES_USER', 'postgres')
+    db_pass = os.getenv('POSTGRES_PASSWORD', 'password')
+    db_name = os.getenv('POSTGRES_DB', 'project_db')
 
     # 2. Формируем строку подключения (URL)
     connection_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
