@@ -1,14 +1,9 @@
 import os
 import pandas as pd
 from sqlalchemy import create_engine
-import logging
+from logging_config import get_logger
 
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def load_data_to_postgres(df: pd.DataFrame, table_name: str = 'wines'):
     """

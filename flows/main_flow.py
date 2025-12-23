@@ -4,6 +4,11 @@ import boto3 # для работы с MinIO
 from botocore.exceptions import ClientError
 from datetime import datetime
 
+from dask_jobs.transform import MinIODataProcessor, get_minio_storage_options
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 # --- ЗАДАЧА №1: товарищ 1 ---
 @task(retries=3, retry_delay_seconds=10)
 def extract_data_to_minio():
@@ -53,10 +58,20 @@ def extract_data_to_minio():
 @task
 def transform_data_with_dask(s3_path: str):
     """Заглушка: обрабатывает данные с помощью Dask."""
-    print(f"Начинаю обработку файла: {s3_path}")
-    print("... здесь будет логика Dask от Инженера по обработке ...")
-    # В будущем эта задача вернет обработанный DataFrame
-    processed_data = "ТУТ БУДУТ ЧИСТЫЕ ДАННЫЕ"
+    logger.info("Обработка данных...")
+    STORAGE_OPTIONS = get_minio_storage_options(
+        endpoint="localhost:19090",
+        access_key="minioadmin",
+        secret_key="minioadmin"
+    )
+    
+    try:
+        processor = MinIODataProcessor(STORAGE_OPTIONS)
+        processed_data = processor.transform(s3_path)
+        print(f"LEN {len(processed_data).compute()}")    
+    except Exception as e:
+        logger.error(f"Ошибка выполнения: {e}")
+
     return processed_data
 
 
