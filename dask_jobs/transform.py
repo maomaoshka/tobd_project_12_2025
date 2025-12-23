@@ -9,7 +9,7 @@ from minio import Minio
 # Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -41,10 +41,10 @@ class MinIODataProcessor:
         
         # Базовые настройки чтения
         default_kwargs = {
-            'storage_options': self.storage_options,
-            'dtype': 'object',  # Читаем все как строки для гибкости
-            'on_bad_lines': 'warn',  # Предупреждаем о плохих строках
-            'low_memory': False,
+            "storage_options": self.storage_options,
+            "dtype": "object",  # Читаем все как строки для гибкости
+            "on_bad_lines": "warn",  # Предупреждаем о плохих строках
+            "low_memory": False,
         }
         
         # Объединяем с пользовательскими настройками
@@ -66,12 +66,11 @@ class MinIODataProcessor:
             ddf = self.read_from_minio(f"{s3_path}/{wine}.csv")
             ddf = ddf.dropna()
 
-            ddf['Year'] = ddf['Year'].astype('int64')
-            # print(ddf['Year'].compute())
-            ddf['Price'] = ddf['Price'].astype('float64')
-            ddf['Rating'] = ddf['Rating'].astype('float64')
-            ddf['NumberOfRatings'] = ddf['NumberOfRatings'].astype('int64')
-            ddf['WineType'] = wine
+            ddf["Year"] = ddf["Year"].astype("int64")
+            ddf["Price"] = ddf["Price"].astype("float64")
+            ddf["Rating"] = ddf["Rating"].astype("float64")
+            ddf["NumberOfRatings"] = ddf["NumberOfRatings"].astype("int64")
+            ddf["WineType"] = wine
             dataframes.append(ddf)
         return dd.concat(dataframes, axis=0, ignore_index=True)
 
@@ -94,13 +93,13 @@ def get_minio_storage_options(
         Словарь с настройками storage_options
     """
     return {
-        'key': access_key,
-        'secret': secret_key,
-        'client_kwargs': {
-            'endpoint_url': f'http://{endpoint}'
+        "key": access_key,
+        "secret": secret_key,
+        "client_kwargs": {
+            "endpoint_url": f"http://{endpoint}"
         },
-        'config_kwargs': {
-            'signature_version': 's3v4'
+        "config_kwargs": {
+            "signature_version": "s3v4"
         }
     }
 
@@ -123,12 +122,6 @@ if __name__ == "__main__":
     # Запуск ETL процесса
     try:
         logger.info("Запуск основного скрипта...")
-        # Выполняем ETL
-        # cleaned_ddf = transform_and_clean(
-        #     input_path_s3=INPUT_PATH,
-        #     storage_options=STORAGE_OPTIONS,
-        #     output_path_s3=OUTPUT_PATH
-        # )
         processor = MinIODataProcessor(STORAGE_OPTIONS)
         ddf = processor.transform("s3://vivino/archive (1)")
         
@@ -136,9 +129,10 @@ if __name__ == "__main__":
 
         # Выводим информацию о результате
         print("\n" + "="*60)
-        print("РЕЗУЛЬТАТЫ ОБРАБОТКИ:")
+        print("РЕЗУЛЬТАТЫ ОБРАБОТКИ:\nВСЕГО СТРОК:", end=" ")
         print(len(ddf))
         print(f"Колонки: {list(ddf.columns)}")
+        print(f"UNIQUE: {ddf['Name'].unique().compute()}")
         # print(f"{ddf.compute()}")
         print(ddf.info)
 
