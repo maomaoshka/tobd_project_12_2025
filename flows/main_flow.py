@@ -9,6 +9,12 @@ import os
 from dask_jobs.transform import MinIODataProcessor, get_minio_storage_options
 from utils.logging_config import get_logger
 
+from prefect import task, flow, get_run_logger
+import pandas as pd
+import dask.dataframe as dd
+from utils.load_to_dwh import load_data_to_postgres
+import os
+
 logger = get_logger(__name__)
 
 # --- ЗАДАЧА №1: товарищ 1 ---
@@ -20,7 +26,7 @@ def extract_data_to_minio():
     """
     print("Начинаю извлечение данных из локальных CSV-файлов...")
     
-    data_dir = '/app/data'
+    data_dir = 'data'
 
     try:
         csv_files = [f for f in os.listdir(data_dir) if f.endswith('.csv')]
@@ -31,9 +37,11 @@ def extract_data_to_minio():
         print(f"ОШИБКА: Папка {data_dir} не найдена. Проверьте volumes в docker-compose.yml")
         raise e
 
+    minio_endpoint = os.getenv('MINIO_ENDPOINT', 'http://localhost:19090')
+    
     minio_client = boto3.client(
         's3',
-        endpoint_url="http://minio:9000",
+        endpoint_url=minio_endpoint,
         aws_access_key_id="minioadmin",
         aws_secret_access_key="minioadmin"
     )
@@ -68,33 +76,58 @@ def extract_data_to_minio():
 
 # --- ЗАДАЧА №2: ЗАГЛУШКА ДЛЯ 3 товарища ---
 @task
-def transform_data_with_dask(s3_paths: list): # Теперь на вход приходит СПИСОК
-    """Заглушка: обрабатывает данные с помощью Dask."""
-    logger.info("Обработка данных...")
-    STORAGE_OPTIONS = get_minio_storage_options(
-        endpoint="localhost:19090",
-        access_key="minioadmin",
-        secret_key="minioadmin"
-    )
+def transform_data_with_dask(uploaded_paths: list):
+    logger = get_run_logger()
+    logger.info("Начинаю трансформацию через MinIODataProcessor...")
+
+    endpoint = os.getenv('MINIO_PORT_API', 'localhost:19090')
+    storage_options = get_minio_storage_options(endpoint=endpoint)
     
     try:
-        processor = MinIODataProcessor(STORAGE_OPTIONS)
-        processed_data = processor.transform(s3_path)
-        print(f"LEN {len(processed_data).compute()}")    
+        processor = MinIODataProcessor(storage_options)
+        
+        base_s3_path = "s3://raw-data"
+        processed_ddf = processor.transform(base_s3_path)
+        
+        processed_ddf = processed_ddf.rename(columns={
+            "Name": "wine_title",
+            "Country": "country",
+            "Region": "region",
+            "Winery": "winery",
+            "Rating": "rating",
+            "NumberOfRatings": "number_of_ratings",
+            "Price": "price",
+            "Year": "year_of_production",
+            "WineType": "wine_type"
+        })
+        
+        logger.info(f"Трансформация завершена. Строк к загрузке: {len(processed_ddf)}")
+        return processed_ddf
+
     except Exception as e:
-        logger.error(f"Ошибка выполнения: {e}")
-
-    return processed_data
-
+        logger.error(f"Ошибка в задаче трансформации: {e}")
+        raise e
+    
 
 # --- ЗАДАЧА №3: ЗАГЛУШКА ДЛЯ 2 товарища ---
 @task
-def load_data_to_dwh(data):
-    """Заглушка: загружает данные в DWH."""
-    print("Начинаю загрузку данных в DWH...")
-    print(f"Получены данные для загрузки: {data}")
-    print("... здесь будет логика загрузки в PostgreSQL от Инженера данных ...")
-    print("Данные успешно загружены в DWH!")
+def load_data_to_dwh(dask_df):
+    """Принимает данные от Dask и загружает их в PostgreSQL."""
+    logger = get_run_logger()
+    if dask_df is None:
+        logger.error("Нет данных для загрузки.")
+        return
+
+    try:
+        logger.info("Выполняю compute() и загружаю данные в Postgres...")
+        final_pd_df = dask_df.compute()
+        
+        success = load_data_to_postgres(final_pd_df, table_name='wines')
+        
+        if success:
+            logger.info("ДАННЫЕ УСПЕШНО ЗАГРУЖЕНЫ В DWH!")
+    except Exception as e:
+        logger.error(f"Ошибка на этапе загрузки: {e}")
 
 
 # --- ГЛАВНЫЙ FLOW, КОТОРЫЙ СОБИРАЕТ ВСЕ ВМЕСТЕ ---
@@ -105,4 +138,5 @@ def main_etl_flow():
     load_data_to_dwh(processed_data)
 
 if __name__ == "__main__":
-    main_etl_flow.to_deployment(name="main-etl-deployment", work_pool_name="default-agent-pool")
+    # main_etl_flow.to_deployment(name="main-etl-deployment", work_pool_name="default-agent-pool")
+    main_etl_flow()
