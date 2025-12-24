@@ -6,6 +6,11 @@ from datetime import datetime
 import pandas as pd
 import os
 
+from dask_jobs.transform import MinIODataProcessor, get_minio_storage_options
+from utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+
 # --- ЗАДАЧА №1: товарищ 1 ---
 @task(retries=3, retry_delay_seconds=5)
 def extract_data_to_minio():
@@ -65,11 +70,20 @@ def extract_data_to_minio():
 @task
 def transform_data_with_dask(s3_paths: list): # Теперь на вход приходит СПИСОК
     """Заглушка: обрабатывает данные с помощью Dask."""
-    print(f"Начинаю обработку {len(s3_paths)} файлов...")
-    for path in s3_paths:
-        print(f"  - Обрабатывается файл: {path}")
-    print("... здесь будет логика Dask от Инженера по обработке ...")
-    processed_data = "ТУТ БУДУТ ЧИСТЫЕ ДАННЫЕ ПОСЛЕ ОБРАБОТКИ ВСЕХ ФАЙЛОВ"
+    logger.info("Обработка данных...")
+    STORAGE_OPTIONS = get_minio_storage_options(
+        endpoint="localhost:19090",
+        access_key="minioadmin",
+        secret_key="minioadmin"
+    )
+    
+    try:
+        processor = MinIODataProcessor(STORAGE_OPTIONS)
+        processed_data = processor.transform(s3_path)
+        print(f"LEN {len(processed_data).compute()}")    
+    except Exception as e:
+        logger.error(f"Ошибка выполнения: {e}")
+
     return processed_data
 
 
