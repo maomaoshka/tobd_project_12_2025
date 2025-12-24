@@ -3,6 +3,8 @@ import requests
 import boto3 # для работы с MinIO
 from botocore.exceptions import ClientError
 from datetime import datetime
+import pandas as pd
+import os
 
 from dask_jobs.transform import MinIODataProcessor, get_minio_storage_options
 from utils.logging_config import get_logger
