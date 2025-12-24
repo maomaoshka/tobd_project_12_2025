@@ -11,6 +11,7 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
 
   minio:
     image: minio/minio
@@ -26,11 +27,20 @@ services:
 
   app:
     build: . 
-    volumes:
-      - .:/app # Монтируем локальную папку с кодом внутрь контейнера
+    environment:
+      - PREFECT_API_URL=http://prefect-server:4200/api
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=project_db
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_started
+      prefect-server:
+        condition: service_started
+      minio:
+        condition: service_started
     command: sleep infinity 
 
   prefect-server:
@@ -44,13 +54,25 @@ services:
       - postgres
 
   prefect-worker:
-    build: . 
+    #build: . 
+    image: prefecthq/prefect:2-latest
     restart: always
     command: prefect worker start --pool 'default-agent-pool'
     environment:
       - PREFECT_API_URL=http://prefect-server:4200/api
+      # for minio
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_PORT_API=minio:9000
+      # for postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=project_db
     depends_on:
       - prefect-server
+      - postgres
+      - minio
+
 
 volumes:
   pgdata:
