@@ -1,3 +1,4 @@
+-- Active: 1766120172902@@localhost@5433@project_db
 CREATE TABLE wines (
 	id SERIAL PRIMARY KEY, -- в wine_title есть повторения
 	wine_title VARCHAR(255) NOT NULL,
