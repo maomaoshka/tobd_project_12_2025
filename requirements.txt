@@ -13,4 +13,6 @@ psycopg2-binary
 
 # Работа с MinIO (S3) из Python
 s3fs
-boto3
+boto3 
+streamlit==1.28.0 
+plotly==5.17.0 
