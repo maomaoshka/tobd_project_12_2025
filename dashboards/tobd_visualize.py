@@ -22,7 +22,7 @@ def execute_query(query, params=None, return_df=True):
         # Параметры подключения
         db_params = {
             'host': 'localhost',
-            'port': '5433',
+            'port': '5432',
             'database': 'project_db',
             'user': 'postgres',
             'password': 'password'
